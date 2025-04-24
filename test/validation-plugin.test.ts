@@ -1,23 +1,26 @@
-import { Schema, Document } from 'mongoose';
-import { validationPlugin, ValidationConfig, ValidationType, Validation } from '../src';
+import { Schema } from 'mongoose';
+import { validationPlugin, ValidationConfig, Validation } from '../src';
 
 // Create a test model interface
-interface TestUser extends Document {
-  name?: string;
-  email?: string;
-  phone?: string;
-  validations?: Validation[];
-  email_validated: boolean;
-  phone_validated: boolean;
-  isValidated(type: ValidationType): boolean;
-}
+// interface TestUser extends Document {
+//   name?: string;
+//   email?: string;
+//   phone?: string;
+//   validations?: Validation[];
+//   email_validated: boolean;
+//   phone_validated: boolean;
+//   isValidated(type: ValidationType): boolean;
+// }
 
 // Mock document for testing
+interface IData {
+  validations?: Validation[];
+}
 class MockDocument {
   isNew = true;
-  validations: any[] = [];
-  
-  constructor(public data: any = {}) {
+  validations: Validation[] = [];
+
+  constructor(public data: IData = {}) {
     if (data.validations) {
       this.validations = data.validations;
     }

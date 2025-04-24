@@ -9,7 +9,7 @@ export interface Validation {
     last_try?: Date;
     tries: number;
     expire_at?: Date;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 export interface ValidationOptions {
     expiresIn?: number;

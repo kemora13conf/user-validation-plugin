@@ -139,4 +139,4 @@ async function createUser() {
 // Run the example
 // createUser().catch(console.error);
 
-export { UserModel, UserSchema };
+export { UserModel, UserSchema, createUser };

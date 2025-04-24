@@ -1,7 +1,7 @@
 import { Schema } from 'mongoose';
 import { ValidationSchema } from './schemas';
 import { IValidatable, ValidationType, ValidationConfig, ValidationOptions, Validation } from './types';
-import { createValidation, generateValidationCode, calculateExpiry } from './utils';
+import { createValidation } from './utils';
 import { defaultConfig } from './config';
 
 /**

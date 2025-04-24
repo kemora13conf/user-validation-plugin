@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type ValidationType = 'email' | 'phone' | 'identity' | 'address';
 
@@ -11,7 +11,7 @@ export interface Validation {
   last_try?: Date;
   tries: number;
   expire_at?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ValidationOptions {
