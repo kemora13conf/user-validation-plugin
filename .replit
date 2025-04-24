@@ -1,0 +1,51 @@
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "BuildAndTest"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "build_and_check"
+
+[[workflows.workflow]]
+name = "BuildAndTest"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npm run build && npm test"
+
+[[workflows.workflow]]
+name = "build_and_check"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npm run build"
+
+[deployment]
+run = ["sh", "-c", "npm install && npm run build && npm test"]

@@ -1,0 +1,445 @@
+/**
+ * Directory structure for the package:
+ *
+ * validation-plugin/
+ * ├── package.json
+ * ├── tsconfig.json
+ * ├── jest.config.js
+ * ├── README.md
+ * ├── src/
+ * │   ├── index.ts
+ * │   ├── types.ts
+ * │   ├── schemas.ts
+ * │   ├── utils.ts
+ * │   └── config.ts
+ * ├── test/
+ * │   └── validation-plugin.test.ts
+ * └── .eslintrc.js
+ */
+
+// File: package.json
+{
+  "name": "mongoose-validation-plugin",
+  "version": "1.0.0",
+  "description": "A Mongoose plugin for handling email and phone validations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint . --ext .ts",
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mongoose",
+    "plugin",
+    "validation",
+    "email",
+    "phone"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/mongoose-validation-plugin.git"
+  },
+  "dependencies": {
+    "mongoose": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/mongoose": "^5.11.97",
+    "@types/node": "^18.15.0",
+    "@typescript-eslint/eslint-plugin": "^5.56.0",
+    "@typescript-eslint/parser": "^5.56.0",
+    "eslint": "^8.36.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.2"
+  },
+  "peerDependencies": {
+    "mongoose": "^6.0.0 || ^7.0.0"
+  }
+}
+
+// File: tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test"]
+}
+
+// File: jest.config.js
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  testMatch: ['**/test/**/*.test.ts'],
+  collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coveragePathIgnorePatterns: ['/node_modules/'],
+};
+
+// File: .eslintrc.js
+module.exports = {
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended'
+  ],
+  env: {
+    node: true,
+    jest: true
+  },
+  rules: {
+    // Add custom rules here
+  }
+};
+
+// File: src/types.ts
+import { Document, Schema } from 'mongoose';
+
+export type ValidationType = 'email' | 'phone';
+
+export interface Validation {
+  type: ValidationType;
+  validated: boolean;
+  code: string;
+  resends: number;
+  created: Date;
+  last_try?: Date;
+  tries: number;
+  expire_at?: Date;
+}
+
+export interface IValidatable extends Document {
+  validations?: Validation[];
+  email_validated: boolean;
+  phone_validated: boolean;
+  isValidated(type: ValidationType): boolean;
+}
+
+export interface ValidationConfig {
+  ENABLED: boolean;
+  EMAIL_VALIDATION: boolean;
+  PHONE_VALIDATION: boolean;
+}
+
+// File: src/config.ts
+import { ValidationConfig } from './types';
+
+/**
+ * Default configuration for the validation plugin
+ */
+export const defaultConfig: ValidationConfig = {
+  ENABLED: true,
+  EMAIL_VALIDATION: true,
+  PHONE_VALIDATION: true
+};
+
+// File: src/schemas.ts
+import { Schema } from 'mongoose';
+
+/**
+ * Mongoose schema for validation entries
+ */
+export const ValidationSchema = {
+  type: { type: String, enum: ['email', 'phone'] },
+  validated: { type: Boolean, default: false },
+  code: { type: String },
+  resends: { type: Number, default: 0, min: 0 },
+  created: { type: Date, default: Date.now },
+  last_try: { type: Date },
+  tries: { type: Number, default: 0, min: 0 },
+  expire_at: { type: Date },
+};
+
+// File: src/utils.ts
+import { Validation, ValidationType } from './types';
+
+/**
+ * Creates a new validation object
+ * 
+ * @param type The type of validation
+ * @param validated Whether it's already validated
+ * @returns A validation object
+ */
+export const createValidation = (
+  type: ValidationType,
+  validated: boolean = false
+): Validation => {
+  return {
+    type,
+    validated,
+    created: new Date(),
+    code: '',
+    resends: 0,
+    tries: 0,
+    expire_at: undefined,
+  };
+};
+
+// File: src/index.ts
+import { Schema } from 'mongoose';
+import { ValidationSchema } from './schemas';
+import { IValidatable, ValidationType, ValidationConfig } from './types';
+import { createValidation } from './utils';
+import { defaultConfig } from './config';
+
+/**
+ * Mongoose validation plugin for email and phone validation
+ * 
+ * @param schema The mongoose schema to apply the plugin to
+ * @param config Optional custom configuration
+ */
+export const validationPlugin = (
+  schema: Schema,
+  config: Partial<ValidationConfig> = {}
+): void => {
+  // Merge provided config with defaults
+  const pluginConfig: ValidationConfig = {
+    ...defaultConfig,
+    ...config
+  };
+
+  schema.add({
+    validations: [ValidationSchema],
+  });
+
+  // Virtual getters for validation status
+  schema.virtual('email_validated').get(function(this: IValidatable): boolean {
+    return this.isValidated('email');
+  });
+
+  schema.virtual('phone_validated').get(function(this: IValidatable): boolean {
+    return this.isValidated('phone');
+  });
+
+  // Method to check if a specific type is validated
+  schema.methods.isValidated = function(
+    this: IValidatable,
+    type: ValidationType,
+  ): boolean {
+    return this.validations?.find(v => v.type === type)?.validated ?? false;
+  };
+
+  // Pre-save middleware to handle auto-validation based on config
+  schema.pre('save', function(this: IValidatable, next) {
+    // Skip validation handling if validations are explicitly enabled
+    if (pluginConfig.ENABLED) {
+      // Only handle auto-validation for new documents
+      if (this.isNew) {
+        const currentValidations = this.validations || [];
+        let hasChanges = false;
+
+        // Handle email validation
+        if (!pluginConfig.EMAIL_VALIDATION) {
+          const emailValidation = currentValidations.find(
+            v => v.type === 'email',
+          );
+          if (!emailValidation) {
+            currentValidations.push(createValidation('email', true));
+            hasChanges = true;
+          } else if (!emailValidation.validated) {
+            emailValidation.validated = true;
+            hasChanges = true;
+          }
+        }
+
+        // Handle phone validation
+        if (!pluginConfig.PHONE_VALIDATION) {
+          const phoneValidation = currentValidations.find(
+            v => v.type === 'phone',
+          );
+          if (!phoneValidation) {
+            currentValidations.push(createValidation('phone', true));
+            hasChanges = true;
+          } else if (!phoneValidation.validated) {
+            phoneValidation.validated = true;
+            hasChanges = true;
+          }
+        }
+
+        // Update validations array if changes were made
+        if (hasChanges) {
+          this.validations = currentValidations;
+        }
+      }
+    }
+
+    next();
+  });
+
+  // Compound index for better query performance
+  schema.index({ 'validations.type': 1, 'validations.expire_at': 1 });
+};
+
+// Export all the components
+export * from './types';
+export * from './schemas';
+export * from './utils';
+export * from './config';
+
+// File: README.md
+# Mongoose Validation Plugin
+
+A TypeScript plugin for Mongoose that provides email and phone validation functionality.
+
+## Installation
+
+```bash
+npm install mongoose-validation-plugin
+```
+
+## Usage
+
+```typescript
+import mongoose from 'mongoose';
+import { validationPlugin } from 'mongoose-validation-plugin';
+
+const UserSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  phone: String,
+});
+
+// Apply the plugin
+UserSchema.plugin(validationPlugin);
+
+// With custom configuration
+UserSchema.plugin(validationPlugin, {
+  ENABLED: true,
+  EMAIL_VALIDATION: false, // Auto-validate emails
+  PHONE_VALIDATION: true,  // Require phone validation
+});
+
+const User = mongoose.model('User', UserSchema);
+```
+
+## API
+
+### Plugin Options
+
+- `ENABLED`: Whether validation is enabled at all (default: `true`)
+- `EMAIL_VALIDATION`: Whether email validation is required (default: `true`)
+- `PHONE_VALIDATION`: Whether phone validation is required (default: `true`)
+
+### Schema Methods and Virtuals
+
+- `document.email_validated`: Virtual getter for email validation status
+- `document.phone_validated`: Virtual getter for phone validation status
+- `document.isValidated(type)`: Method to check if a specific type is validated
+
+## License
+
+MIT
+
+// File: test/validation-plugin.test.ts
+import mongoose, { Schema, model } from 'mongoose';
+import { validationPlugin, ValidationConfig } from '../src';
+
+describe('Validation Plugin', () => {
+  // Setup a test schema
+  const createTestSchema = (config?: Partial<ValidationConfig>) => {
+    const schema = new Schema({
+      name: String,
+      email: String,
+      phone: String,
+    });
+    
+    schema.plugin(validationPlugin, config);
+    return schema;
+  };
+  
+  beforeAll(async () => {
+    await mongoose.connect('mongodb://localhost:27017/test-db');
+  });
+  
+  afterAll(async () => {
+    await mongoose.connection.close();
+  });
+  
+  it('should add validation fields to the schema', () => {
+    const schema = createTestSchema();
+    const paths = Object.keys(schema.paths);
+    
+    expect(paths).toContain('validations');
+  });
+  
+  it('should auto-validate when configured', async () => {
+    const schema = createTestSchema({
+      EMAIL_VALIDATION: false,
+      PHONE_VALIDATION: false,
+    });
+    
+    const TestModel = model('AutoValidateTest', schema);
+    const testDoc = new TestModel({
+      name: 'Test User',
+      email: 'test@example.com',
+    });
+    
+    await testDoc.save();
+    
+    expect(testDoc.email_validated).toBe(true);
+    expect(testDoc.phone_validated).toBe(true);
+  });
+  
+  it('should not auto-validate when validation is enabled', async () => {
+    const schema = createTestSchema({
+      EMAIL_VALIDATION: true,
+      PHONE_VALIDATION: true,
+    });
+    
+    const TestModel = model('NoAutoValidateTest', schema);
+    const testDoc = new TestModel({
+      name: 'Test User',
+      email: 'test@example.com',
+    });
+    
+    await testDoc.save();
+    
+    expect(testDoc.email_validated).toBe(false);
+    expect(testDoc.phone_validated).toBe(false);
+  });
+  
+  it('should correctly check validation status', async () => {
+    const schema = createTestSchema();
+    const TestModel = model('CheckValidationTest', schema);
+    
+    const testDoc = new TestModel({
+      name: 'Test User',
+      email: 'test@example.com',
+      validations: [
+        {
+          type: 'email',
+          validated: true,
+          code: '123456',
+          resends: 0,
+          tries: 0,
+          created: new Date(),
+        }
+      ]
+    });
+    
+    await testDoc.save();
+    
+    expect(testDoc.email_validated).toBe(true);
+    expect(testDoc.phone_validated).toBe(false);
+    expect(testDoc.isValidated('email')).toBe(true);
+    expect(testDoc.isValidated('phone')).toBe(false);
+  });
+});
