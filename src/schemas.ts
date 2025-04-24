@@ -12,5 +12,6 @@ export const ValidationSchema = {
   last_try: { type: Date },
   tries: { type: Number, default: 0, min: 0 },
   expire_at: { type: Date },
-  metadata: { type: Schema.Types.Mixed }
+  metadata: { type: Schema.Types.Mixed },
+  _id: false,
 };

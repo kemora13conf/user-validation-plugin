@@ -1,5 +1,5 @@
 {
-  "name": "workspace",
+  "name": "user-validation-plugin",
   "version": "1.0.0",
   "description": "A TypeScript plugin for Mongoose that provides email and phone validation functionality.",
   "main": "dist/index.js",
@@ -7,6 +7,7 @@
     "test": "test"
   },
   "scripts": {
+    "dev": "nodemon --watch src --exec yarn build",
     "test": "jest",
     "build": "tsc",
     "lint": "eslint . --ext .ts"

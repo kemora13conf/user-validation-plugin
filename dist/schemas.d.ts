@@ -37,4 +37,5 @@ export declare const ValidationSchema: {
     metadata: {
         type: typeof Schema.Types.Mixed;
     };
+    _id: boolean;
 };
