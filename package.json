@@ -1,6 +1,7 @@
 {
   "name": "user-validation-plugin",
-  "version": "1.0.0",
+  "$schema": "https://json.schemastore.org/package",
+  "version": "1.0.2",
   "description": "A TypeScript plugin for Mongoose that provides email and phone validation functionality.",
   "main": "dist/index.js",
   "directories": {
@@ -12,8 +13,18 @@
     "build": "tsc",
     "lint": "eslint . --ext .ts"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "mongoose",
+    "plugin",
+    "typescript",
+    "users",
+    "user",
+    "validation",
+    "email",
+    "phone"
+  ],
+  "author": "Abdelghani El Mouak",
+  "repository": "https://github.com/kemora13conf/user-validation-plugin.git",
   "license": "ISC",
   "dependencies": {
     "@types/jest": "^29.5.14",
